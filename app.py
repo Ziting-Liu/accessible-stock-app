@@ -187,23 +187,34 @@ if data.empty:
 # HEADER METRICS (no red/green — arrows + labeled color instead)
 # ============================================================
 latest_close = float(data["Close"].iloc[-1])
-prev_close = float(data["Close"].iloc[-2]) if len(data) > 1 else latest_close
-change = latest_close - prev_close
-pct_change = (change / prev_close * 100) if prev_close else 0
+
+# Change is measured across the *displayed* window (first bar shown vs. latest bar),
+# so it actually reflects the interval picked in the sidebar, not just the most
+# recent daily tick. We also keep the latest single-bar move for context.
+period_start_close = float(data["Close"].iloc[0])
+change = latest_close - period_start_close
+pct_change = (change / period_start_close * 100) if period_start_close else 0
 direction_symbol = "▲" if change >= 0 else "▼"
 direction_word = "Up" if change >= 0 else "Down"
 direction_color = COLOR_UP if change >= 0 else COLOR_DOWN
 
+latest_bar_change = latest_close - float(data["Close"].iloc[-2]) if len(data) > 1 else 0.0
+latest_bar_symbol = "▲" if latest_bar_change >= 0 else "▼"
+latest_bar_color = COLOR_UP if latest_bar_change >= 0 else COLOR_DOWN
+
 col1, col2, col3 = st.columns(3)
 col1.metric("Last Price", f"${latest_close:,.2f}")
+col1.caption(
+    f"Latest bar: {latest_bar_symbol} ${abs(latest_bar_change):,.2f}"
+)
 col2.markdown(
-    f"<div style='font-size:14px;color:gray;'>Change</div>"
+    f"<div style='font-size:14px;color:gray;'>Change ({period_label})</div>"
     f"<div style='font-size:28px;font-weight:600;color:{direction_color};'>"
     f"{direction_symbol} {direction_word} ${abs(change):,.2f}</div>",
     unsafe_allow_html=True,
 )
 col3.markdown(
-    f"<div style='font-size:14px;color:gray;'>% Change</div>"
+    f"<div style='font-size:14px;color:gray;'>% Change ({period_label})</div>"
     f"<div style='font-size:28px;font-weight:600;color:{direction_color};'>"
     f"{direction_symbol} {abs(pct_change):.2f}%</div>",
     unsafe_allow_html=True,
